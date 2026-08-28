@@ -1,0 +1,5 @@
+FROM lmsysorg/sglang:glm-5.3-flash-arm64
+# PR 36708: DFLASH mHC capture adapter
+COPY glm5_next.py /sgl-workspace/sglang/python/sglang/srt/models/glm5_next.py
+# GB10 smem retune per LibertAIDAI card: block_I=32, num_stages=1, threads=128 (169984B -> fits 101376B)
+COPY tilelang_kernel.py /sgl-workspace/sglang/python/sglang/kernels/ops/attention/dsa/tilelang_kernel.py
