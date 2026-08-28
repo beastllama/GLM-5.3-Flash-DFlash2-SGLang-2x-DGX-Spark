@@ -89,3 +89,32 @@ control fails at 91%; fp8 GEMMs lower and run).
 | TTFT@16k warm | **6.6 s vs 7.9 s bf16 — 17% faster prefill** |
 | open item | raw-layout accounting resolves max_running_requests to 1; retune attempt (max-total 393216 + mamba-ratio 3) held at 1 and shrank the pool — the constraint is the mamba slice, not the token budget. Documented as PR known-limitation; fp8 = interactive config, bf16-T8 = fleet config |
 Kernel analysis + port: this rig (Fable agent), validated per the house protocol.
+
+## Multi-stream unlock (2026-08-28 pm) — the "1-stream fp8" open item is CLOSED, and it was never about fp8
+The engine logs the whole story at boot:
+`max_running_requests is capped to 2 by the mamba state cache (max_mamba_cache_size=10, 5 state slots per request)`.
+Every DFlash config on this rig — bf16 T8 included, since it shipped identical memory args — was
+silently capped at **2 concurrent spec streams**; the flat c2→c12 aggregate we called a "bandwidth
+plateau" was queueing. The ~55 tok/s no-spec ceiling was the cap's shadow, not the machine's.
+
+Fix (config FP8T8b, one coherent package): `--max-mamba-cache-size 40` (8 streams x 5 slots) +
+`--mamba-ssm-dtype bfloat16` (halves state: 35 MB/slot vs 75) + `--mem-fraction-static 0.90`.
+A first attempt (48 slots, fp32 ssm, 0.88) died at pool allocation — weights leave only ~2.3 GB of
+fraction slack, so the ssm dtype lever is what makes 40 slots fit. KV pool grew to 84,288 tokens as
+a side effect; 10.8 GB runtime headroom kept deliberately (GB10 OOM can wedge the node).
+
+| c | FP8T8b (fp8-KV, DFlash, 40 slots) | old T8 (bf16, capped@2) | no-spec T12 |
+|---|---|---|---|
+| 1 | 36.9 | 37.3 | 14.5 |
+| 2 | 48.2 | 49.5 | 27.1 |
+| 4 | 46.9 | 51.7 | 36.8 |
+| 8 | **80.3** (10.0/stream, 8/8) | 47.3 | 55.1 |
+| 12 | **85.4** (7.1/stream, 12/12) | 48.8 | 55.0 |
+
++70% at c8, +75% at c12 over the capped curve; +55% over the no-spec "plateau". Decode batches
+observed at 5-8 running requests — first true multi-stream DFlash on this rig. Trade-off, measured:
+single-stream code median 27.4 vs 29.2 on the 10-slot fp8 config (~6%, consistent with bf16 ssm
+states shaving accept length; deep-batch accept len ~3.1 vs ~4.2 single). Correctness: 19x21 gate
+PASS, no token-0 collapse. **Production is now FP8T8b** — fp8-KV prefill wins AND the concurrency
+curve, one config. (c-sweep prompts: 12 distinct short code/infra prompts, 400 max_tokens, temp 0,
+stream:false, warmed; clocks stock.)

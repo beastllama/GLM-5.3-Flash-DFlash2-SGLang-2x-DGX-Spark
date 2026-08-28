@@ -36,7 +36,7 @@ distribution-preserving, not bit-identical, on this stack until that lands.
 
 ## Serving measurements (FINAL config: v4b image + D5 flags, 2026-08-28 ~04:00)
 - **TTFT** (stream:true, first content/reasoning delta, warm): ~4k-token prompt **2.3 s** uncached / **0.74 s** radix-cached; ~16k **7.9 s** (≈2,000 tok/s prefill). ~64k: unmeasurable at the 65,536 context window. First-request-after-boot 4k read 39.6 s — cold-start JIT/caches; excluded as contaminated, reported for honesty.
-- **Concurrency**: c2 aggregate **30.2 tok/s** vs single-stream 29.4 — **DFlash verify saturates the machine at one stream**; added concurrency buys ~nothing at this config. For multi-client serving, a no-spec or MTP boot may aggregate better (untested).
+- **Concurrency**: superseded twice — first by the c-sweep (the "saturates at one stream" read was a max_running=2 artifact), then by the multi-stream unlock (LADDER.md): the mamba state cache capped ALL DFlash configs at 2 concurrent streams. With `--max-mamba-cache-size 40 --mamba-ssm-dtype bfloat16 --mem-fraction-static 0.90` on the fp8-KV config: **c8 80.3 tok/s aggregate (8/8 concurrent), c12 85.4** vs 47-49 capped and 55 no-spec. Single-stream cost of the unlock: 27.4 vs 29.2 code median (~6%).
 
 ## G6 losslessness — FINAL verdict (20 prompts, temp 0, content+reasoning captured, on vs off)
 **1/20 exactly identical; 19/20 diverge** somewhere in their (mostly long, reasoning-bearing)
