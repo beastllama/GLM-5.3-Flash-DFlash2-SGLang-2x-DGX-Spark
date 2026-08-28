@@ -75,3 +75,31 @@ concurrent), c12 = 85.4 vs 48.8 capped — +75%, and +55% over our no-spec "band
 which turned out to be the cap's shadow. Cost: ~6% single-stream (27.4 vs 29.2). One config
 now holds both the prefill and concurrency wins. Patches + full ladder in the repo; details
 in sglang issue #36830.
+
+---
+FINAL STAGED forum reply v3 — supersedes both blocks above (post this one):
+
+Three "known limitations" of the SGLang route died on this rig today, all config/plumbing:
+
+1. fp8 KV cache on GB10 — this morning's post called it impossible. The tilelang tree
+already ships a complete raw-fp8 sparse kernel, HIP-gated in three plumbing sites. We
+ported the plumbing, validated on sm_121 (decode parity with bf16, 4/5 temp-0 exact, 32k
+recall clean, TTFT@16k 6.6s vs 7.9s). Patch branch + executed pytest:
+github.com/beastllama/sglang, branch fp8-kv-tilelang-cuda. Details: sglang #36830.
+
+2. The concurrency "bandwidth plateau" — the mamba state cache silently caps EVERY DFlash
+config at 2 concurrent streams (10 slots, 5/request; check your boot log for "capped to 2
+by the mamba state cache"). With --max-mamba-cache-size 40 --mamba-ssm-dtype bfloat16
+--mem-fraction-static 0.90: c8 = 78.7 tok/s aggregate (8/8 truly concurrent), c12 = 79.5
+vs 48.8 capped. Filed as sglang #36889. Cost ~6% single-stream.
+
+3. "No vision on the SGLang path" — GLM-5.3-Flash is multimodal (24-layer vision tower,
+image AND video tokens), the NVFP4 quant ships all the visual tensors, and the #36507
+branch implements the path. It was one flag: --enable-multimodal. Image input verified
+working on the fp8 + 8-stream config with no measurable decode tax (29.3 tok/s code
+single-stream). Honest scope: smoke-tested, not benchmarked — vision quality/video/
+vision-under-concurrency still open.
+
+One config now holds all three: fp8 KV + 8 concurrent streams + image input.
+Full ladder (kept AND reverted experiments), boot scripts, probes:
+github.com/beastllama/GLM-5.3-Flash-DFlash2-SGLang-2x-DGX-Spark
