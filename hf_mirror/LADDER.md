@@ -49,4 +49,7 @@ tilelang forbids it on CUDA by upstream policy; trtllm kernels don't build for t
 requires a separate drafter-server topology (`--decoupled-spec-role verifier/drafter-rank` + bind/connect
 endpoints + rank). This is the #1 next-frontier item; expected the largest structural gain.
 
-Finishing: FINAL (v4b image + D5 flags) → fa3 draft attention → TTFT/concurrency → G6 matrix → closeout.
+| **FINAL** | **v4b image + D5 flags** | **29.4** (28.2–30.4) | **23.4** (20.7–25.4) | **SHIP CONFIG** — best combined; official upstream code |
+| FA3 | draft attention fa3 | — | — | CLOSED: `FA3 requires SM>=80 and SM<=90` — sm_121 outside the window. Draft-attention map complete: flashinfer only |
+
+Closeout in progress: TTFT (4k/16k/64k), c2 aggregate, 20-prompt G6 matrix vs DFLASH-off, morning package.
