@@ -45,3 +45,17 @@ ALSO STAGED — X reply to @MiaAI_lab's "might move to sglang... slow until dfla
 
 sglang + dflash2 recipe for your 2x Sparks is up — 1.88x over no-spec, 4 GB10 fixes included,
 honest caveats (bf16 KV only for now): github.com/beastllama/GLM-5.3-Flash-DFlash2-SGLang-2x-DGX-Spark
+
+---
+STAGED — fp8 breakthrough reply for your own forum thread (post when ready):
+
+Big update: fp8 KV cache now WORKS on SGLang GB10. This morning's post said it was
+impossible (tilelang forbids it on CUDA; trtllm has no sm_121) — it turned out the
+tilelang tree already ships a complete raw-fp8 sparse kernel, HIP-gated in three
+plumbing sites. We ported the plumbing, verified the kernel by execution on sm_121
+(one-hot exact; negative control fails as it must), and validated end-to-end:
+decode parity with bf16, 4/5 temp-0 outputs exactly identical, 32k-depth recall
+clean, and TTFT@16k 6.6s vs 7.9s bf16 (~17% faster prefill). Known item: the raw
+layout currently resolves to single-stream — fp8 is our interactive config, bf16
+the fleet config. Patch set (5 files) + validation protocol in the repo; upstream
+PR to sglang in preparation. Details: sglang issue #36830.

@@ -87,5 +87,5 @@ control fails at 91%; fp8 GEMMs lower and run).
 | temp-0 vs bf16, 5 prompts | **4/5 exact** |
 | 32K-depth codeword probe | PASS |
 | TTFT@16k warm | **6.6 s vs 7.9 s bf16 — 17% faster prefill** |
-| open item | raw-layout memory accounting resolved max_running_requests to 1 — budget retune WIP |
+| open item | raw-layout accounting resolves max_running_requests to 1; retune attempt (max-total 393216 + mamba-ratio 3) held at 1 and shrank the pool — the constraint is the mamba slice, not the token budget. Documented as PR known-limitation; fp8 = interactive config, bf16-T8 = fleet config |
 Kernel analysis + port: this rig (Fable agent), validated per the house protocol.
