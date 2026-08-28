@@ -133,3 +133,11 @@ Config FP8T8V = FP8T8b + `--enable-multimodal`. Results:
 **Production is now FP8T8V: fp8-KV + 8 concurrent streams + image input, one config.**
 Not yet measured: vision quality beyond the smoke probe, video input, vision+DFlash accept
 interaction, vision under concurrency. Treat image support as verified-working, not benchmarked.
+
+## Pool expansion (2026-08-28 pm) — FP8T8X, production
+FP8T8V + mem-fraction 0.90->0.92, single variable. KV pool 84,288 -> 244,032 tokens (2.9x;
+the 262,144 ask minus page rounding), both target-fp8 and draft-bf16 pools. 8.9GB runtime
+headroom kept. Gate PASS; c8 78.1 / c12 83.5 (curve unchanged); single-stream 27.0 code —
+within the day's 27.0-29.3 noise band for this config family. Production = start-FP8T8X.sh:
+fp8-KV + 8 streams + vision + 244k-token pool. Context-length raise beyond 131k = next rung
+(needs rope/prefill verification, not just pool).
