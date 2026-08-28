@@ -42,4 +42,4 @@ temp-0 on/off comparison; full matrix queued).
 1. `SGLANG_HOST_IP` must be set per-rank or multi-node `shm_broadcast` hangs forever
 2. DFLASH×hybrid-KDA memory law: mamba pool needs `per_req×(1+D)` + ~5× per-request amplification
 3. DSA tilelang smem overflow at the 8-token verify shape (169,984 B > sm_121's 101,376 B) — retune to `block_I=32, num_stages=1, threads=128`
-4. `residual=None` crash in the DFLASH capture adapter during CUDA graph capture (guard added; reported upstream)
+4. `residual=None` crash in the DFLASH capture adapter during CUDA graph capture — **fixed upstream in sglang #36755** (merged 2026-08-28, same idiom as our guard; images built from `aa8c950a3`+ carry the official fix)

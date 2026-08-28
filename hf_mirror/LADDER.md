@@ -52,4 +52,6 @@ endpoints + rank). This is the #1 next-frontier item; expected the largest struc
 | **FINAL** | **v4b image + D5 flags** | **29.4** (28.2–30.4) | **23.4** (20.7–25.4) | **SHIP CONFIG** — best combined; official upstream code |
 | FA3 | draft attention fa3 | — | — | CLOSED: `FA3 requires SM>=80 and SM<=90` — sm_121 outside the window. Draft-attention map complete: flashinfer only |
 
-Closeout in progress: TTFT (4k/16k/64k), c2 aggregate, 20-prompt G6 matrix vs DFLASH-off, morning package.
+| SERVE | FINAL + ctx 131072 / max-total 262144 | 29.3 (25.2–31.8) | 22.7 (21.9–23.5) | **PRODUCTION CONFIG** — 2× context window at statistical parity; Hermes cut over to this endpoint 2026-08-28 |
+
+Campaign complete. Closeout data in RESULTS.md; morning package in MORNING.md.
