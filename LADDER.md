@@ -28,4 +28,6 @@ Kernel tile map for sm_121 (measured): `qo_len` multi-token kernel → small til
 | D6 | speculative-num-draft-tokens 8→6 | **29.7** (27.2–31.0) | **21.5** (20.4–23.4) | **KEPT — new incumbent.** Shorter draft block wastes less verify on doomed tokens at our acceptance profile |
 
 Cumulative: 27.6 → 29.7 code (+7.6%) since first light.
-In progress: L4 fp8-target-KV autopsy (log capture), then D=4.
+| L4v2 | fp8 target KV (tilelang DSA) | — | — | **CLOSED: architecturally unsupported** — SGLang raises `tilelang DSA ... on CUDA requires a bfloat16 KV cache` at arg resolution. Round-1's 64s death explained |
+
+In progress: L4v3 — trtllm DSA backend + fp8 KV (the GB300 reference config; sm_121 support UNKNOWN, one gated boot), then D=4.
