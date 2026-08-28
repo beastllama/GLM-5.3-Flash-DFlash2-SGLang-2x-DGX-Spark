@@ -46,3 +46,13 @@ DSA tilelang, NVFP4) DFlash2-on is NOT bit-identical to DFLASH-off at temp 0.** 
 drafter card's "greedy output matches the target exactly" does not reproduce here; whether
 the cause is verify-path numerics on this chip or quant interaction is unresolved. Users
 needing bit-exact greedy reproducibility should serve DFLASH-off.
+
+## Thinking mode vs effort (2026-08-28)
+Decode tok/s is IDENTICAL with thinking on or off (~18-22 on this probe; run variance
+exceeds any mode difference). But with a tight max_tokens budget, thinking-ON can spend
+the ENTIRE budget on reasoning and return zero answer: at 600 max_tokens our probe got
+2,600 chars of reasoning_content and empty content (finish=length), while thinking-OFF
+returned 2,462 chars of pure answer in the same wall time. For agent/tool workloads,
+disable thinking per-request ("chat_template_kwargs": {"enable_thinking": false}) or
+budget max_tokens for reasoning + answer. Conditions: merge-sorted-lists code prompt,
+600 max_tokens, temp 0, FP8T8V config.
