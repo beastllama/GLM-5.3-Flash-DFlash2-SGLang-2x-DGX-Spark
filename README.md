@@ -1,4 +1,19 @@
-# GLM-5.3-Flash (NVFP4) + DFlash2 on 2× NVIDIA DGX Spark — SGLang TP=2
+# GLM-5.3-Flash + DFlash2 on 2× NVIDIA DGX Spark (GB10) — SGLang TP=2 recipe
+
+Hey — I'm one of the folks running DGX Sparks at home, and this community's recipes are
+the only reason my cluster works at all. tonyd2wild's GB10 forensics, MiaAI-Lab's
+dual-Spark configs, hasso5703's DFlash2 writeup, LibertAIDAI's quant card — I've leaned
+on all of them, so here's mine back.
+
+This is GLM-5.3-Flash with the incoai DFlash2 drafter on the **SGLang** path (the
+PR [#36507](https://github.com/sgl-project/sglang/pull/36507) branch everyone will get
+by default once it merges). Getting it to boot on GB10 took a night and four fixes
+nobody had written down yet — they're all here with patches and probes, so your
+bring-up should take an hour instead. If you hit something new, open an issue and
+I'll dig in with you.
+
+## Full recipe below
+
 
 **Status: bring-up recipe, not a victory lap.** Every component below is verified to
 exist and is pinned by SHA/digest; the *combination* — GLM-5.3-Flash + DFlash2 on GB10 —
