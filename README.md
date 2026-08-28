@@ -251,3 +251,16 @@ never a re-download.
 | tilelang collapse-under-contention (`!`-floods) seen on our Qwen lane | mitigation: max-running-requests 2 + G7 contention probe; not yet observed on glm5_next path |
 | Prefix/radix cache on SM_121 hit `CUBLAS_STATUS_INTERNAL_ERROR` on one other model | not disabling preemptively; if hit, add `--disable-radix-cache` and log it |
 | fp8 draft KV / fp8 target KV / ctx > 65536 / max-running > 2 / TP4 | all later, gated experiments; each currently UNMEASURED on this stack |
+
+## Prior art, pinning, and license notes (2026-08-28 sweep)
+- **Prior art:** [Tutanka01/glm5.3-flash-2x-dgx-spark-nvfp4](https://github.com/Tutanka01/glm5.3-flash-2x-dgx-spark-nvfp4)
+  (created 2026-08-26) published an SGLang TP=2 GB10 deployment of this model ~30h before ours,
+  with DFlash2 as a secondary profile. Our claim is accordingly the narrower one: the first
+  *dedicated, tuned and fully-measured* DFlash2-on-SGLang recipe (D-sweep, concurrency ladder,
+  fp8-KV port, multimodal). Credit where due.
+- **Baseline pin:** every number in RESULTS/LADDER was measured on SGLang branch
+  `xinyuan/glm-5.3-flash-support` @ `aa8c950a3` (+ our patches). sm_121 fixes are landing
+  upstream at pace (e.g. #36755 now upstream — drop that patch on rebase; #36649 trtllm-gen
+  sparse decode); numbers move with the base.
+- **Drafter license:** `incoai/GLM-5.3-Flash-DFlash2` is **cc-by-nc-nd-4.0** — non-commercial
+  AND no-derivatives: do not ship modified or requantized drafters.

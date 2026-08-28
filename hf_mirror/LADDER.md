@@ -141,3 +141,18 @@ headroom kept. Gate PASS; c8 78.1 / c12 83.5 (curve unchanged); single-stream 27
 within the day's 27.0-29.3 noise band for this config family. Production = start-FP8T8X.sh:
 fp8-KV + 8 streams + vision + 244k-token pool. Context-length raise beyond 131k = next rung
 (needs rope/prefill verification, not just pool).
+
+## Analyst pass (2026-08-28 pm) — c4 dip explained, D=7 rejected, one retraction
+- The "c4 dip" is a HARNESS ARTIFACT, not an engine effect: engine decode is monotone in batch
+  (bs1 ~37-41 -> bs8 ~97-100 tok/s from decode-batch logs; cuda graph active at bs=4, no batch
+  split, mamba usage 0.30). The sweep harness takes wall=max over c different prompts and one
+  low-acceptance straggler (p2/p3 in the prompt list) sets the wall; c8 amortizes the same tail
+  over 2x the tokens (c4 1600 tok in 37.0s vs c8 3200 in 41.0s — impossible unless a shared
+  straggler). Harness now prints per-stream walls + straggler id. Low-c aggregates in earlier
+  sweeps understate the engine; c8/c12 figures stand (~80-96% homogeneous-model fit).
+- RETRACTION: "D=5, max 6, realize ~5.9" was wrong — the arg counts the bonus token, ceiling
+  is 5, measured accept 3.4-4.4. Their k=7 = our D=8. Corrected in RESULTS.md.
+- D=7 experiment REJECTED by arithmetic before spending a boot: predicted +1.4% structured
+  (ceiling +8% at perfect acceptance), -9% prose. The real gap is verify cost per token (~56%
+  cheaper on the EXL3 stack at identical step rates) -> next frontier is the decoupled drafter
+  attacking the ~40 ms fixed step floor.

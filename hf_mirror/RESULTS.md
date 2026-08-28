@@ -67,9 +67,15 @@ from prose (26.9) and long-context (24-27). We ran their exact protocol on our s
 |---|---:|---:|
 | structured count-to-200 | 61.7 | 43.3 |
 | prose hash-map | 26.9 | **29.2** |
-Structured gap decomposes: they draft k=7 (max 8 tok/step, realize 6.43); we run D=5 (max 6,
-realize ~5.9 — pinned at ceiling on this workload). D is workload-tunable; we have not re-swept
-D for high-accept regimes. On the prose workload the SGLang stack is faster. Their genuine
+Structured gap decomposes — CORRECTED 2026-08-28 pm (analyst pass caught our counting error):
+SGLang's --speculative-num-draft-tokens INCLUDES the bonus token, so our D=5 ceiling is 5
+tok/step (measured accept length 3.4-4.4, never "~5.9" — that figure was inferred, wrong, and
+is retracted), and their "k=7" is D=8 in our units. Modeling from our measured D-sweep
+(verify costs ~19.9 ms per extra draft token on a ~40 ms floor): D=7 predicts 43.9 tok/s
+structured (+1.4%) with a hard ceiling of 46.7 even at perfect acceptance, and costs ~9%
+prose — so we are NOT raising D. Step rates are within 3% of the EXL3 stack (9.9 vs 9.6
+steps/s); their advantage is ~56% cheaper verify per token (quant/backend), which is the
+real lever (decoupled drafter / verify cost), not drafter depth. On the prose workload the SGLang stack is faster. Their genuine
 edges, acknowledged: (1) weights quality — independent KLD panel puts EXL3 4bpw at ~official-FP8
 level while NVFP4 (which we serve) scores 2.5x worse; (2) KV pool — 982k tokens vs our 84k
 (context expansion on our stack is config work, queued). Credit: MiaAI-Lab and brandonmusic.
