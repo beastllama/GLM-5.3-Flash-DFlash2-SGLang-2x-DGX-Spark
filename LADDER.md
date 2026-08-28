@@ -25,4 +25,7 @@ Kernel tile map for sm_121 (measured): `qo_len` multi-token kernel → small til
 `sparse_attention_fwd_kernel_v1` → small tile REQUIRED (verify path); `sparse_mla_fwd_decode_partial`
 → either (no measurable difference).
 
-In progress: draft-token sweep (6 vs 8), L4 fp8-target-KV autopsy with log capture.
+| D6 | speculative-num-draft-tokens 8→6 | **29.7** (27.2–31.0) | **21.5** (20.4–23.4) | **KEPT — new incumbent.** Shorter draft block wastes less verify on doomed tokens at our acceptance profile |
+
+Cumulative: 27.6 → 29.7 code (+7.6%) since first light.
+In progress: L4 fp8-target-KV autopsy (log capture), then D=4.

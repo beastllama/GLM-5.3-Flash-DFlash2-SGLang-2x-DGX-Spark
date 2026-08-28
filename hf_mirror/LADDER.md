@@ -15,9 +15,14 @@ code-1/prose-1 prompts as in RESULTS.md. Keep rule: beats incumbent code median 
 
 Round-1 net: +3% code. The big lever (fp8 target KV) is blocked, not disproven.
 
-## Round 2 (in progress)
-- **L1 per-shape tilelang tiles**: round-1 image shrank ALL DSA kernels to the GB10 tile;
-  only the 8-token verify shape needed it. Reverting decode-path kernels to stock
-  (block_I=64/num_stages=2/threads=256), verify-shape kernel stays small.
-- L4 autopsy with log capture before teardown.
-- Draft-token sweep 8/6/4.
+## Round 2
+| rung | change | code | prose | verdict |
+|---|---|---|---|---|
+| L1v2 | decode+v1 kernels stock tiles | — | — | BOOT FAILED, same 169,984 B smem error — `sparse_attention_fwd_kernel_v1` is in the verify path and must stay small |
+| L1v3 | only `sparse_mla_fwd_decode_partial` stock | 28.5 (25.7–33.2) | 20.2 | kept (wash) — **finding: the GB10 small tile is ~free; tile geometry is not the bottleneck** |
+
+Kernel tile map for sm_121 (measured): `qo_len` multi-token kernel → small tile REQUIRED;
+`sparse_attention_fwd_kernel_v1` → small tile REQUIRED (verify path); `sparse_mla_fwd_decode_partial`
+→ either (no measurable difference).
+
+In progress: draft-token sweep (6 vs 8), L4 fp8-target-KV autopsy with log capture.
