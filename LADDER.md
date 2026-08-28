@@ -55,3 +55,19 @@ endpoints + rank). This is the #1 next-frontier item; expected the largest struc
 | SERVE | FINAL + ctx 131072 / max-total 262144 | 29.3 (25.2–31.8) | 22.7 (21.9–23.5) | **PRODUCTION CONFIG** — 2× context window at statistical parity; Hermes cut over to this endpoint 2026-08-28 |
 
 Campaign complete. Closeout data in RESULTS.md; morning package in MORNING.md.
+
+
+## Concurrency curves (2026-08-28, agent-style prompts, 400 tok, aggregate tok/s)
+| c | DFlash (max_req 8) | no-spec (max_req 12) |
+|---|---|---|
+| 1 | **37.3** | 14.5 |
+| 2 | **49.5** | 27.1 |
+| 4 | **51.7** (12.9/stream) | 36.8 |
+| 8 | 47.3 | **55.1** |
+| 12 | 48.8 | **55.0** |
+
+**Correction:** our earlier "DFlash verify saturates at c1" was an artifact of
+`max_running_requests=2` — with headroom, DFlash scales and dominates to ~c8.
+~55 aggregate is the machine's bandwidth plateau either way. **Production config
+changed to DFlash + max_running 8** (best latency at every c<8, ~94% of the fleet
+ceiling at c12).
