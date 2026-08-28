@@ -30,4 +30,10 @@ Kernel tile map for sm_121 (measured): `qo_len` multi-token kernel → small til
 Cumulative: 27.6 → 29.7 code (+7.6%) since first light.
 | L4v2 | fp8 target KV (tilelang DSA) | — | — | **CLOSED: architecturally unsupported** — SGLang raises `tilelang DSA ... on CUDA requires a bfloat16 KV cache` at arg resolution. Round-1's 64s death explained |
 
-In progress: L4v3 — trtllm DSA backend + fp8 KV (the GB300 reference config; sm_121 support UNKNOWN, one gated boot), then D=4.
+| L4v3 | trtllm DSA backends + fp8 KV | — | — | **DIED: `TllmGenFmhaRunner: Unsupported arch`** — trtllm FMHA does not support sm_121 |
+
+**fp8 target KV verdict on GB10 + SGLang + GLM-5.3: impossible on this stack today.**
+tilelang forbids it on CUDA by upstream policy; trtllm kernels don't build for the chip.
+(vLLM reached fp8 KV on GB10 only via hand-patched CTA tile caps — see tonyd2wild's recipe.)
+
+In progress: D=4 draft-token test (last cheap experiment), then closeout: final G6 matrix + staged morning update.
