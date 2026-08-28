@@ -36,4 +36,7 @@ Cumulative: 27.6 → 29.7 code (+7.6%) since first light.
 tilelang forbids it on CUDA by upstream policy; trtllm kernels don't build for the chip.
 (vLLM reached fp8 KV on GB10 only via hand-patched CTA tile caps — see tonyd2wild's recipe.)
 
-In progress: D=4 draft-token test (last cheap experiment), then closeout: final G6 matrix + staged morning update.
+| D4 | draft tokens 4 | 28.3 (28.2–28.7) | **23.3** (23.3–23.3) | reverted on code — but best prose of the campaign (+8% vs D6): code peaks at D=6, prose at D=4; D=5 queued |
+| V4/V5 (first attempt) | upstream aa8c950a3 refresh + novel fat tile | — | — | both died pre-kernel on a partial-overlay skew (`hc_attn_to_mlp` — model file and communicator_mhc.py are a coupled pair); rebuilt as V4b/V5b with both files |
+
+In progress: V4b (upstream refresh) → V5b (novel fat 1-stage tile, still untested) → D5, then decoupled drafter, fa3, prefill/TTFT, closeout.

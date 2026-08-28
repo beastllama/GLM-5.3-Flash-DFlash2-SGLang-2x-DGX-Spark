@@ -39,4 +39,8 @@ tilelang forbids it on CUDA by upstream policy; trtllm kernels don't build for t
 | D4 | draft tokens 4 | 28.3 (28.2–28.7) | **23.3** (23.3–23.3) | reverted on code — but best prose of the campaign (+8% vs D6): code peaks at D=6, prose at D=4; D=5 queued |
 | V4/V5 (first attempt) | upstream aa8c950a3 refresh + novel fat tile | — | — | both died pre-kernel on a partial-overlay skew (`hc_attn_to_mlp` — model file and communicator_mhc.py are a coupled pair); rebuilt as V4b/V5b with both files |
 
-In progress: V4b (upstream refresh) → V5b (novel fat 1-stage tile, still untested) → D5, then decoupled drafter, fa3, prefill/TTFT, closeout.
+| V4b | upstream aa8c950a3 (official mHC capture fix + kpool changes) + our tiles | 29.5 (29.5–29.6) | **22.5** | **KEPT as incumbent** — code statistically tied with D6 (29.7, whose spread contains V4b), prose +4.7%, and it replaces our hand-guard with the official fix. Tie broken on provenance |
+| V5b | novel fat tile 64/1/256 | — | — | smem 104,448 B > 101,376 — **3,072 bytes over.** Single-stage halved the request exactly as modeled |
+
+block_I must divide topk (2048): only 32 or 64 are legal. Final tile candidate V5c = 64/1/128
+(reduction workspace shrinks with threads) queued. In progress: D5 → V5c → decoupled drafter, fa3, prefill/TTFT, closeout.
