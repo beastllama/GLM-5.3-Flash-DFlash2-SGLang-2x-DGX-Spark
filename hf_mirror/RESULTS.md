@@ -79,3 +79,27 @@ real lever (decoupled drafter / verify cost), not drafter depth. On the prose wo
 edges, acknowledged: (1) weights quality — independent KLD panel puts EXL3 4bpw at ~official-FP8
 level while NVFP4 (which we serve) scores 2.5x worse; (2) KV pool — 982k tokens vs our 84k
 (context expansion on our stack is config work, queued). Credit: MiaAI-Lab and brandonmusic.
+
+## THE SHOOTOUT (2026-08-28): both stacks, one rig, one protocol
+We ran MiaAI-Lab's EXL3+vLLM lane (their repo, their image, their k=7 default, our fabric pins)
+and our SGLang fp8 lane on the SAME 2x DGX Spark pair, SAME prompts, temp 0, thinking off,
+400 max_tokens, warmed, n=5 medians; c-sweep with per-stream walls printed. First such
+comparison published anywhere, to our knowledge.
+| workload | EXL3+vLLM | SGLang fp8 (FP8T8X) |
+|---|---:|---:|
+| structured count-to-200 | 51.3 (n=5 spread 30.2-59.1) | 43.3 |
+| code (merge-sorted-lists) | **51.9** | 29.3 |
+| prose (hash map) | 23.7 | **29.2** |
+| c1 | 53.8 | 36.5 |
+| c2 | 54.5 | 48.7 |
+| c4 | 72.8 | 43.3 (straggler-tainted, see analyst note) |
+| c8 | 63.8 | **78.1** |
+| c12 | 53.3 | **83.5** |
+Read: EXL3+vLLM wins single-stream high-accept work decisively (code +77% — larger than we
+expected; cheap verify + deeper draft). SGLang fp8 wins prose at every point and wins fleet
+concurrency by +57% at c12 — the EXL3 lane's aggregate DEGRADES past c4 (72.8 -> 53.3), which
+is consistent with their repo publishing only to c4. Their published 62.9 structured did not
+reproduce on this rig (51.3 median, wide spread). Caveats: their lane ran their defaults, one
+boot, no per-lane tuning by us; our c4 carries the known harness straggler. Credit: MiaAI-Lab
+and brandonmusic for the lane. Posture unchanged: SGLang fp8 serves production (fleet shape
+matches our workload); EXL3 lane retained on-disk for interactive use cases.

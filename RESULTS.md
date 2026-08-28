@@ -81,7 +81,7 @@ level while NVFP4 (which we serve) scores 2.5x worse; (2) KV pool — 982k token
 (context expansion on our stack is config work, queued). Credit: MiaAI-Lab and brandonmusic.
 
 ## THE SHOOTOUT (2026-08-28): both stacks, one rig, one protocol
-We ran MiaAI-Lab's EXL3+vLLM lane (their repo, their image, their k=7 default, our fabric pins)
+We ran MiaAI-Lab's EXL3+vLLM lane (their repo @ bd7f55e, their :exl3 GHCR image, their k=7 default, our fabric pins; benchmarked 2026-08-28 ~15:00 PT — their repo is moving fast and has since announced concurrency-focused fixes, so re-run before citing)
 and our SGLang fp8 lane on the SAME 2x DGX Spark pair, SAME prompts, temp 0, thinking off,
 400 max_tokens, warmed, n=5 medians; c-sweep with per-stream walls printed. First such
 comparison published anywhere, to our knowledge.
