@@ -71,3 +71,21 @@ Campaign complete. Closeout data in RESULTS.md; morning package in MORNING.md.
 ~55 aggregate is the machine's bandwidth plateau either way. **Production config
 changed to DFlash + max_running 8** (best latency at every c<8, ~94% of the fleet
 ceiling at c12).
+
+## fp8-KV tilelang CUDA port (2026-08-28) — WORKS ON GB10
+The gate was plumbing, not kernels: a complete raw-fp8 sparse kernel (`sparse_mla_fwd_decode_partial_fp8`)
+ships in-tree, HIP-gated in 3 plumbing sites (dispatch, pool layout, fused-quant write). Port = relax the
+gate (CUDA + both-backends-tilelang + SM89+), route the raw 512 B/token layout on CUDA, key the raw write
+on layout not platform. Kernel verified by execution on sm_121 first (one-hot exact 0.000000; negative
+control fails at 91%; fp8 GEMMs lower and run).
+| check | result |
+|---|---|
+| boot-gate negative control (mixed backends + fp8) | **died as required** (ValueError) |
+| point-of-effect log line | present (stock code cannot print it) |
+| 19×21 gate / token-0 collapse | PASS / none |
+| decode (n=5 medians) | 29.2 code / 22.9 prose — **parity** with same-image bf16 (29.8) |
+| temp-0 vs bf16, 5 prompts | **4/5 exact** |
+| 32K-depth codeword probe | PASS |
+| TTFT@16k warm | **6.6 s vs 7.9 s bf16 — 17% faster prefill** |
+| open item | raw-layout memory accounting resolved max_running_requests to 1 — budget retune WIP |
+Kernel analysis + port: this rig (Fable agent), validated per the house protocol.
