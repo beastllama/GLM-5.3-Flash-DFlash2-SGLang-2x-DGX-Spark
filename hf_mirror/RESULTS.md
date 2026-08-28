@@ -33,3 +33,16 @@ distribution-preserving, not bit-identical, on this stack until that lands.
 
 ## Reference comparison (other published GB10 GLM-5.3 numbers, different stack)
 - tonyd2wild vLLM TP2 + MTP-4: 21.8 tok/s median (peak 22.7); TP4: 35.7
+
+## Serving measurements (FINAL config: v4b image + D5 flags, 2026-08-28 ~04:00)
+- **TTFT** (stream:true, first content/reasoning delta, warm): ~4k-token prompt **2.3 s** uncached / **0.74 s** radix-cached; ~16k **7.9 s** (≈2,000 tok/s prefill). ~64k: unmeasurable at the 65,536 context window. First-request-after-boot 4k read 39.6 s — cold-start JIT/caches; excluded as contaminated, reported for honesty.
+- **Concurrency**: c2 aggregate **30.2 tok/s** vs single-stream 29.4 — **DFlash verify saturates the machine at one stream**; added concurrency buys ~nothing at this config. For multi-client serving, a no-spec or MTP boot may aggregate better (untested).
+
+## G6 losslessness — FINAL verdict (20 prompts, temp 0, content+reasoning captured, on vs off)
+**1/20 exactly identical; 19/20 diverge** somewhere in their (mostly long, reasoning-bearing)
+outputs. Divergences are near-tie token flips that cascade in long generations — outputs
+remain correct and comparable in quality (all gates passed), but **on this stack (sm_121,
+DSA tilelang, NVFP4) DFlash2-on is NOT bit-identical to DFLASH-off at temp 0.** The
+drafter card's "greedy output matches the target exactly" does not reproduce here; whether
+the cause is verify-path numerics on this chip or quant interaction is unresolved. Users
+needing bit-exact greedy reproducibility should serve DFLASH-off.
