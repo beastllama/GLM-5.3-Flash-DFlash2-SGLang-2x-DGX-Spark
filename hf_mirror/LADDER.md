@@ -156,3 +156,13 @@ fp8-KV + 8 streams + vision + 244k-token pool. Context-length raise beyond 131k 
   (ceiling +8% at perfect acceptance), -9% prose. The real gap is verify cost per token (~56%
   cheaper on the EXL3 stack at identical step rates) -> next frontier is the decoupled drafter
   attacking the ~40 ms fixed step floor.
+
+## Straggler probe result (2026-08-28 pm) — mechanism REVISED by its own negative control
+Per-prompt c1 probe: all 8 harness prompts land 10.3-14.0s (within +-20%) — the "slow prompt"
+hypothesis is refuted (the predicted regex straggler was fastest). Revised mechanism, consistent
+with all walls including the EXL3 lane's per-stream data (c4 min 7.9s ~= c1, max 18.7s):
+**admission serialization** — chunked prefills enter one at a time, so wall = last-admitted
+stream's start delay + decode; at c4 the fixed ramp amortizes over half the tokens of c8, which
+reads as a "dip". Unchanged conclusions: the engine's decode is monotone in batch size, and
+low-concurrency wall-clock aggregates understate steady-state engine throughput on BOTH stacks.
+Structured re-measure same session: 48.8-49.7 tok/s (x3) vs 43.3 earlier — run-to-run band.
