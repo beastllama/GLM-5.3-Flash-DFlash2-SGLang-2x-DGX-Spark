@@ -59,3 +59,19 @@ clean, and TTFT@16k 6.6s vs 7.9s bf16 (~17% faster prefill). Known item: the raw
 layout currently resolves to single-stream — fp8 is our interactive config, bf16
 the fleet config. Patch set (5 files) + validation protocol in the repo; upstream
 PR to sglang in preparation. Details: sglang issue #36830.
+
+---
+UPDATED STAGED fp8 forum reply — supersedes the block above (post this one instead):
+
+Big update x2: fp8 KV cache now WORKS on SGLang GB10, and the "single-stream" limitation
+died the same day. This morning's post said fp8 was impossible — the tilelang tree already
+ships a complete raw-fp8 sparse kernel, HIP-gated in three plumbing sites; we ported the
+plumbing and validated end-to-end (decode parity with bf16, 4/5 temp-0 exact, 32k recall
+clean, TTFT@16k 6.6s vs 7.9s). Then the concurrency finding: the mamba state cache silently
+caps EVERY DFlash config at 2 concurrent streams (10 slots, 5 per request — check your boot
+log for "capped to 2 by the mamba state cache"). With --max-mamba-cache-size 40
+--mamba-ssm-dtype bfloat16 --mem-fraction-static 0.90: c8 = 80.3 tok/s aggregate (8/8 truly
+concurrent), c12 = 85.4 vs 48.8 capped — +75%, and +55% over our no-spec "bandwidth plateau,"
+which turned out to be the cap's shadow. Cost: ~6% single-stream (27.4 vs 29.2). One config
+now holds both the prefill and concurrency wins. Patches + full ladder in the repo; details
+in sglang issue #36830.
