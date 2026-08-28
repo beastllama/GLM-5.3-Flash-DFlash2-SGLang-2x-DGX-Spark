@@ -103,3 +103,14 @@ reproduce on this rig (51.3 median, wide spread). Caveats: their lane ran their 
 boot, no per-lane tuning by us; our c4 carries the known harness straggler. Credit: MiaAI-Lab
 and brandonmusic for the lane. Posture unchanged: SGLang fp8 serves production (fleet shape
 matches our workload); EXL3 lane retained on-disk for interactive use cases.
+
+## Concurrency correctness matrix (2026-08-28, FP8T8X production config)
+Motivated by sglang #36548 (36.5% wrong answers at c8 with DFLASH on GB10, another rig/config)
+and #36880/#36885 (mamba sentinel-slot corruption): fixed deterministic arithmetic prompts with
+objective ground truths, temp 0, thinking off, serial baseline then 3 rounds each at c4 and c8.
+Result: **44/44 correct (c1 8/8, c4 12/12, c8 24/24)** — no concurrency-dependent wrongness
+detected on this config (bf16 mamba ssm states, D=5, fp8 target KV, 40 mamba slots).
+Scope caveat: a 44-request short-form matrix rules out gross corruption, not rare load-dependent
+corruption; the #36885 sentinel bug is claimed load-dependent. Methodology note: our first run
+"failed" 7/44 — every failure was reasoning-narration truncated by an 80-token cap, zero wrong
+values; budget raised to 400 and the checker's false accusations vanished. Check your checker.
