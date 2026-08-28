@@ -118,3 +118,18 @@ states shaving accept length; deep-batch accept len ~3.1 vs ~4.2 single). Correc
 PASS, no token-0 collapse. **Production is now FP8T8b** — fp8-KV prefill wins AND the concurrency
 curve, one config. (c-sweep prompts: 12 distinct short code/infra prompts, 400 max_tokens, temp 0,
 stream:false, warmed; clocks stock.)
+
+## Vision unlock (2026-08-28 pm) — GLM-5.3-Flash is MULTIMODAL, and it works on this stack
+Correction of our own record: GLM-5.3-Flash has a full 24-layer vision tower with image AND
+video tokens (upstream config: Glm5NextForConditionalGeneration). The LibertAIDAI NVFP4 quant
+ships all 347 model.visual.* tensors, and the SGLang #36507 branch implements the vision path.
+Our deployments simply never passed --enable-multimodal.
+
+Config FP8T8V = FP8T8b + `--enable-multimodal`. Results:
+- vision gate: PASS (64x64 solid-red data-URL probe answered "Red", temp 0)
+- single-stream: 29.3 code / 23.8 prose — no measurable vision-tower tax (matches best fp8)
+- c-sweep: c1 34.5 / c2 51.1 / c4 44.5 / c8 78.7 (8/8) / c12 79.5 — concurrency intact
+  (c12 delta vs FP8T8b's 85.4 is single-run noise territory; c4 dip reproduces in both)
+**Production is now FP8T8V: fp8-KV + 8 concurrent streams + image input, one config.**
+Not yet measured: vision quality beyond the smoke probe, video input, vision+DFlash accept
+interaction, vision under concurrency. Treat image support as verified-working, not benchmarked.
