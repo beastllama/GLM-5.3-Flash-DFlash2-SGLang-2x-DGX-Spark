@@ -56,3 +56,20 @@ returned 2,462 chars of pure answer in the same wall time. For agent/tool worklo
 disable thinking per-request ("chat_template_kwargs": {"enable_thinking": false}) or
 budget max_tokens for reasoning + answer. Conditions: merge-sorted-lists code prompt,
 600 max_tokens, temp 0, FP8T8V config.
+
+## Cross-stack comparison vs EXL3+vLLM (2026-08-28, same prompts, our hardware for our column)
+MiaAI-Lab published GLM-5.3-Flash-EXL3-2x-DGX-Sparks (EXL3/TR3 4bpw by brandonmusic, custom
+vLLM image, DFlash2 k=7, fp8_ds_mla KV, 900k context). Their headline 62.9/103.3/146.5 is the
+"Structured" bench — counting 1 to 200 — a ~0.92-accept regime their own fine print separates
+from prose (26.9) and long-context (24-27). We ran their exact protocol on our stack
+(temp 0, thinking off, 400 max_tokens, top_p 1, warmed, n=5 medians, FP8T8V config):
+| workload (their prompts) | EXL3+vLLM (their lab numbers) | ours (SGLang fp8-KV) |
+|---|---:|---:|
+| structured count-to-200 | 61.7 | 43.3 |
+| prose hash-map | 26.9 | **29.2** |
+Structured gap decomposes: they draft k=7 (max 8 tok/step, realize 6.43); we run D=5 (max 6,
+realize ~5.9 — pinned at ceiling on this workload). D is workload-tunable; we have not re-swept
+D for high-accept regimes. On the prose workload the SGLang stack is faster. Their genuine
+edges, acknowledged: (1) weights quality — independent KLD panel puts EXL3 4bpw at ~official-FP8
+level while NVFP4 (which we serve) scores 2.5x worse; (2) KV pool — 982k tokens vs our 84k
+(context expansion on our stack is config work, queued). Credit: MiaAI-Lab and brandonmusic.
