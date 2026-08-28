@@ -42,5 +42,11 @@ tilelang forbids it on CUDA by upstream policy; trtllm kernels don't build for t
 | V4b | upstream aa8c950a3 (official mHC capture fix + kpool changes) + our tiles | 29.5 (29.5–29.6) | **22.5** | **KEPT as incumbent** — code statistically tied with D6 (29.7, whose spread contains V4b), prose +4.7%, and it replaces our hand-guard with the official fix. Tie broken on provenance |
 | V5b | novel fat tile 64/1/256 | — | — | smem 104,448 B > 101,376 — **3,072 bytes over.** Single-stage halved the request exactly as modeled |
 
-block_I must divide topk (2048): only 32 or 64 are legal. Final tile candidate V5c = 64/1/128
-(reduction workspace shrinks with threads) queued. In progress: D5 → V5c → decoupled drafter, fa3, prefill/TTFT, closeout.
+| D5 | draft tokens 5 | 29.6 (29.6–29.6) | **23.3** (23.0–23.3) | **best combined config** — D6's code with D4's prose; takes incumbency on tie-break |
+| V5c | fat tile 64/1/128 | — | — | smem 103,424 B — still 2 KB over. **Fat-tile chapter closed with a complete map**: 64-wide needs ≥103.4 KB in any shape; GB10 ceiling 101.4; 32-wide fits and costs nothing |
+
+**Decoupled drafter** (killing the TP=2 all-reduce tax on the 1B draft model): mapped, viable, NOT attempted —
+requires a separate drafter-server topology (`--decoupled-spec-role verifier/drafter-rank` + bind/connect
+endpoints + rank). This is the #1 next-frontier item; expected the largest structural gain.
+
+Finishing: FINAL (v4b image + D5 flags) → fa3 draft attention → TTFT/concurrency → G6 matrix → closeout.
