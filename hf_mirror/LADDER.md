@@ -166,3 +166,14 @@ stream's start delay + decode; at c4 the fixed ramp amortizes over half the toke
 reads as a "dip". Unchanged conclusions: the engine's decode is monotone in batch size, and
 low-concurrency wall-clock aggregates understate steady-state engine throughput on BOTH stacks.
 Structured re-measure same session: 48.8-49.7 tok/s (x3) vs 43.3 earlier — run-to-run band.
+
+## Night queues 2+3 (2026-08-28 evening) — four rungs, one discovery, one blocker
+| rung | change | verdict |
+|---|---|---|
+| N1 | num-continuous-decode-steps 3 | NULL — exact baseline; scheduler loop is not the 40ms floor |
+| N2 | torch.compile | BOOT-FAIL — cuda-graph capture OOM at fraction 0.92; retry would need capped graph set + lower fraction, plus a compile tax on every boot. Not production-shaped |
+| N3 | context 262k + fraction 0.93 | Speed-neutral (28.7 code, 80.2 c12), pool fully funded at 262,144 — BUT the 64k depth probe KILLED the worker (silent rank1 death mid-prefill, no traceback, docker state incoherent). Same class as the vLLM-route long-prefill worker-kill; falsifies "fp8 KV unaffected". Threshold between 32k (passes) and 62k (kills). >32k prompts UNVERIFIED on all configs until bisected. NOT promoted |
+| N4 | enable-mixed-chunk | NULL on this protocol — short-prompt sweep cannot exercise it; needs a prefill-interference test before final verdict |
+Conclusion of the verify-cost hunt: both cheap levers dead; the code-speed gap vs EXL3 is
+quant-level. Next real levers: decoupled drafter (architecture), and the 64k crash bisect
+(reliability before capacity). Production remains FP8T8X.

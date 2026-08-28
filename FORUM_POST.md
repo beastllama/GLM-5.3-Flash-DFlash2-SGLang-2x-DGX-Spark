@@ -103,3 +103,37 @@ vision-under-concurrency still open.
 One config now holds all three: fp8 KV + 8 concurrent streams + image input.
 Full ladder (kept AND reverted experiments), boot scripts, probes:
 github.com/beastllama/GLM-5.3-Flash-DFlash2-SGLang-2x-DGX-Spark
+
+---
+FORUM REPLY v4 (2026-08-28 late) — supersedes v3, includes shootout. PASTE THIS ONE:
+
+Big update since the original post. Three "known limitations" of the SGLang route died in one
+day, then we ran the first same-rig comparison against the EXL3+vLLM recipe.
+
+1. fp8 KV cache on GB10 works. The tilelang tree already ships a complete raw-fp8 sparse
+kernel, HIP-gated in three plumbing sites. Ported, validated on sm_121 (decode parity with
+bf16, 4/5 temp-0 exact, 32k recall clean, TTFT@16k 6.6s vs 7.9s). Upstream PR: sglang #36904.
+
+2. The ~55 tok/s "bandwidth plateau" was a silent cap: the mamba state cache limits EVERY
+DFlash config to 2 concurrent streams (boot log: "capped to 2 by the mamba state cache").
+Fix: --max-mamba-cache-size 40 --mamba-ssm-dtype bfloat16 --mem-fraction-static 0.92.
+Result: c8 = 78 tok/s aggregate (8/8 truly concurrent), c12 = 83.5 vs 48.8 capped. Filed as
+sglang #36889. We also ran a correctness matrix under load (fixed arithmetic, temp 0): 44/44
+right answers at c1/c4/c8.
+
+3. GLM-5.3-Flash is multimodal and the SGLang path serves it: --enable-multimodal. Image
+input verified working on the fp8 + 8-stream config, no measurable decode tax.
+
+THE SHOOTOUT: we then ran MiaAI-Lab's EXL3+vLLM recipe (their repo @ bd7f55e, their image,
+their defaults) on the SAME two Sparks, same prompts, same protocol. Honest split:
+- EXL3+vLLM wins single-user code decisively: 51.9 vs 29.3 tok/s
+- SGLang fp8 wins prose (29.2 vs 23.7) and fleet concurrency: 83.5 vs 53.3 at c12 (+57%);
+  the EXL3 lane's aggregate degrades past c4.
+Solo coder: run their lane. Agents/teams/concurrent: run this one. Both live on our rig now;
+we re-measure as they ship.
+
+One warning for long-context users on EITHER stack: we can reproduce a silent worker-node
+death on long prefills (~62k tokens killed rank1 with no traceback on a 262k-context config;
+32k passes). Threshold bisect in progress; treat >32k prompts as unverified until we post the
+follow-up. Everything above, with the full ladder including failed experiments:
+github.com/beastllama/GLM-5.3-Flash-DFlash2-SGLang-2x-DGX-Spark
