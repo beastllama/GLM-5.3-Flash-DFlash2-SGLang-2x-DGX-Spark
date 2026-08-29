@@ -172,8 +172,32 @@ Structured re-measure same session: 48.8-49.7 tok/s (x3) vs 43.3 earlier — run
 |---|---|---|
 | N1 | num-continuous-decode-steps 3 | NULL — exact baseline; scheduler loop is not the 40ms floor |
 | N2 | torch.compile | BOOT-FAIL — cuda-graph capture OOM at fraction 0.92; retry would need capped graph set + lower fraction, plus a compile tax on every boot. Not production-shaped |
-| N3 | context 262k + fraction 0.93 | Speed-neutral (28.7 code, 80.2 c12), pool fully funded at 262,144 — BUT the 64k depth probe KILLED the worker (silent rank1 death mid-prefill, no traceback, docker state incoherent). Same class as the vLLM-route long-prefill worker-kill; falsifies "fp8 KV unaffected". Threshold between 32k (passes) and 62k (kills). >32k prompts UNVERIFIED on all configs until bisected. NOT promoted |
+| N3 | context 262k + fraction 0.93 | Speed-neutral (28.7 code, 80.2 c12), pool fully funded at 262,144 — BUT the 64k depth probe KILLED the worker (silent rank1 death mid-prefill, no traceback, docker state incoherent). **SCOPE CORRECTED 2026-08-29: this death is specific to THIS memory-tight config (bigger pool = less runtime headroom), NOT a general long-prefill failure — production (131k ctx / fraction 0.92) completes 86k-token prompts in 112 s. See the long-context section below.** NOT promoted |
 | N4 | enable-mixed-chunk | NULL on this protocol — short-prompt sweep cannot exercise it; needs a prefill-interference test before final verdict |
 Conclusion of the verify-cost hunt: both cheap levers dead; the code-speed gap vs EXL3 is
 quant-level. Next real levers: decoupled drafter (architecture), and the 64k crash bisect
 (reliability before capacity). Production remains FP8T8X.
+
+## Long-context: what is actually true (2026-08-29, corrected)
+Two earlier claims of ours were WRONG and are retracted here; the corrections cost one night and
+are the reason this section exists.
+- **RETRACTED "prefill >40k kills the worker."** That 600 s / timeout data point was the FIRST
+  request after a boot — TileLang JIT compilation for new shapes. The same config later did 86k
+  tokens in 112 s. Cold-start contamination, in a project whose own methodology notes warn about
+  exactly this.
+- **RETRACTED "the worker dies at ~62k."** Scope error: it dies on the memory-tight N3 config
+  (ctx 262k, fraction 0.93). Production presents the same pressure as a timeout, not a kill.
+- **RETRACTED our own first probe ladder.** All probes reused one filler string, so later ones
+  were served from the radix cache (prefill rate climbed 494 → 2,914 tok/s across the ladder —
+  the tell). Re-run with unique content per probe and `POST /flush_cache` before each.
+
+Controlled A/B, unique uncached prompts, single variable, same night, same rig:
+| prompt | chunked-prefill 8192 (production) | chunked-prefill 2048 |
+|---|---|---|
+| 86,444 tok | PASS 111.6 s | PASS 100.3 s |
+| 102,644 tok | **client timeout at 300 s** (worker survived; node ssh unresponsive during) | **PASS 65.5 s** |
+**Guidance: use `--chunked-prefill-size 2048` for long-context serving on GB10.** It is at least as
+fast at every size measured and is the difference between completing and not completing above
+~100k tokens. Mechanism (dense `[Σq × Σk/4]` fp32 indexer logits scaling with TOTAL prompt length,
+with `_should_chunk_mqa_logits` defined but never called on the kpool path) and our public
+correction: sglang issue #36941.
