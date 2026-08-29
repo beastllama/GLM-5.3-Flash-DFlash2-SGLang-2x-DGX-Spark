@@ -12,15 +12,31 @@ nobody had written down yet — they're all here with patches and probes, so you
 bring-up should take an hour instead. If you hit something new, open an issue and
 I'll dig in with you.
 
+## Current status (2026-08-29) — measured, in production
+
+Running config: `start-LC4.sh` — fp8 KV + DFlash2 (D=5) + 8 concurrent streams + vision,
+`--chunked-prefill-size 4096`, 131k context, ~242k-token KV pool.
+
+| metric | value |
+|---|---:|
+| code single-stream | 28.6 tok/s |
+| prose single-stream | 23.6 tok/s |
+| **c8 aggregate** | **77.4 tok/s** (8/8 concurrent) |
+| **c12 aggregate** | **83.2 tok/s** (12/12) |
+| TTFT @16k warm | ~6.6 s |
+| 100k-token prompt | PASS, 104 s |
+| correctness under load | 44/44 (c1/c4/c8) |
+| vision (image input) | working |
+
+All warmed, temp 0, `stream:false`, n=5 medians, stock clocks. Three things that were
+believed impossible on this path when we started are now measured working: fp8 KV cache
+(upstream PR [#36904](https://github.com/sgl-project/sglang/pull/36904)), >2 concurrent
+DFlash streams (issue [#36889](https://github.com/sgl-project/sglang/issues/36889)),
+and 100k-token prompts (issue [#36941](https://github.com/sgl-project/sglang/issues/36941)).
+See **LADDER.md** for every experiment including the failures and our own retractions,
+**RESULTS.md** for the head-to-head against the EXL3+vLLM lane on this same rig.
+
 ## Full recipe below
-
-
-**Status: bring-up recipe, not a victory lap.** Every component below is verified to
-exist and is pinned by SHA/digest; the *combination* — GLM-5.3-Flash + DFlash2 on GB10 —
-has, as of 2026-08-27, been run by nobody outside inco.ai on any hardware (the drafter
-repo's download counter reads 0; the enabling PR merged today at 18:23 UTC). All
-performance numbers for the combination are therefore **UNMEASURED** and marked so.
-Reference numbers from neighbouring proven deploys are labeled with their source.
 
 Provenance chain (see FINDINGS.md for how each was verified):
 
