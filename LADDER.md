@@ -215,12 +215,18 @@ prompts. Promotion gated on 19x21 + a 44-request correctness matrix under load: 
 (c1 8/8, c4 12/12, c8 24/24). 2048 is the right choice only if long-context latency matters
 more than 8-way throughput.
 
-### Mechanism: NOT established (negative result)
-Our dense-`[Σq × Σk/4]`-fp32-indexer-logits hypothesis did NOT survive its own test. We wired the
-unused `_should_chunk_mqa_logits` guard into the kpool path (verified live in-container via class
-MRO) and re-ran the failing case at chunk 8192: **still timed out at 300 s**, same as stock. So
-either the guard never fired at our free-memory level, or logits chunking is not the fix. A
-forced-unconditional-chunking diagnostic build is running to separate those. Until it reports,
-the honest statement is: **chunk size demonstrably controls whether 100k prompts complete on
-GB10; why, is unresolved.** Separately, the guard being defined-but-never-called on the kpool
-path is still a real upstream defect worth fixing regardless of whether it is our cause.
+### Mechanism: CONFIRMED (after one failed attempt)
+Three builds, same 102,644-token unique prompt, chunk 8192, JIT pre-warmed, within one hour:
+| build | result |
+|---|---|
+| stock | timeout at 300 s (x2) |
+| stock + guard wired into kpool path (live-verified via container class MRO) | timeout at 300 s |
+| same + logits chunked unconditionally at 512 rows (diagnostic build) | **PASS 135.0 s** |
+So the dense `[Σq × Σk/4]` fp32 logits block IS the cause — chunking it, and nothing else, fixes
+the case. The middle row is explained by the guard's own log line, which the diagnostic build
+emitted 143 times: `num_q=4340 num_k=25664 guard_said_chunk=True budget=217873612`. The guard
+correctly says "chunk" but its ~218 MB budget yields ~2,122-row chunks (25,664 x 4 bytes/row),
+which is still too coarse here; 512-row chunks work. **Two defects, not one: the guard is never
+called on the kpool path, AND its default budget is ~4x too generous for GB10 unified memory.**
+Reported upstream on #36941. Note the first version of this section said the mechanism was NOT
+established — that was written between the second and third builds and is kept in git history.

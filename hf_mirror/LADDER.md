@@ -201,3 +201,26 @@ fast at every size measured and is the difference between completing and not com
 ~100k tokens. Mechanism (dense `[Σq × Σk/4]` fp32 indexer logits scaling with TOTAL prompt length,
 with `_should_chunk_mqa_logits` defined but never called on the kpool path) and our public
 correction: sglang issue #36941.
+
+## Chunked-prefill size sweep (2026-08-29) — new production config
+Single variable, everything else held at production settings. 102k probe = unique uncached
+prompt, JIT pre-warmed, `POST /flush_cache` first.
+| chunk | code | prose | c8 | c12 | 102,644-token prompt |
+|---|---:|---:|---:|---:|---|
+| 8192 (old prod) | 27.0-29.3 | 23.8 | 78.1 | 83.5 | **timeout at 300 s (reproduced twice)** |
+| **4096 (NEW PROD)** | **28.6** | 23.6 | **77.4** | **83.2** | **PASS 104.0 s** |
+| 2048 | 29.3 | 23.3 | 73.5 (~6% below band) | 82.4 | PASS 65.5 s |
+**Production = `start-LC4.sh`** (chunk 4096): keeps the concurrency band AND completes 100k+
+prompts. Promotion gated on 19x21 + a 44-request correctness matrix under load: 44/44 clean
+(c1 8/8, c4 12/12, c8 24/24). 2048 is the right choice only if long-context latency matters
+more than 8-way throughput.
+
+### Mechanism: NOT established (negative result)
+Our dense-`[Σq × Σk/4]`-fp32-indexer-logits hypothesis did NOT survive its own test. We wired the
+unused `_should_chunk_mqa_logits` guard into the kpool path (verified live in-container via class
+MRO) and re-ran the failing case at chunk 8192: **still timed out at 300 s**, same as stock. So
+either the guard never fired at our free-memory level, or logits chunking is not the fix. A
+forced-unconditional-chunking diagnostic build is running to separate those. Until it reports,
+the honest statement is: **chunk size demonstrably controls whether 100k prompts complete on
+GB10; why, is unresolved.** Separately, the guard being defined-but-never-called on the kpool
+path is still a real upstream defect worth fixing regardless of whether it is our cause.
