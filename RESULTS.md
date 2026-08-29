@@ -114,3 +114,21 @@ Scope caveat: a 44-request short-form matrix rules out gross corruption, not rar
 corruption; the #36885 sentinel bug is claimed load-dependent. Methodology note: our first run
 "failed" 7/44 — every failure was reasoning-narration truncated by an 80-token cap, zero wrong
 values; budget raised to 400 and the checker's false accusations vanished. Check your checker.
+
+## SHOOTOUT round 2 (2026-08-28 late) — EXL3 lane rev 1df71c1 (MiaAI-Lab's concurrency+context update)
+Re-ran after MiaAI-Lab shipped 7 commits (DFlash2/MLA KV page-sharing, 1M default context,
+prefix-cache fix). Same unified protocol, our rig, their new image. What changed:
+| metric | EXL3 v1 (bd7f55e) | EXL3 v2 (1df71c1) | SGLang fp8 (ours) |
+|---|---:|---:|---:|
+| code c1 | 51.9 | 45.3 | 29.3 |
+| structured | 51.3 | 51.1 | 43.3 |
+| prose | 23.7 | 25.0 | 29.2 |
+| c8 aggregate | 63.8 | 57.7 | 78.1 |
+| c12 aggregate | 53.3 | 59.9 | 83.5 |
+| 54k-token prefill | (not tested) | **PASS** (worker survived, 119GB peak) | **worker dies ~62k** |
+Read: her concurrency fix is real but partial — c12 improved +12% (53.3→59.9) yet still trails
+our 83.5 and still degrades past c4. Her decisive new edge is LONG CONTEXT reliability: her lane
+recalled a needle at 34k AND 54k tokens with the worker surviving, where our stack silently kills
+rank1 at ~62k (the blocker from our night-3 probe). Her MLA/DFlash2 KV page-sharing is doing what
+her commits claim. Honest scorecard now: EXL3 wins solo code + long context; SGLang fp8 wins prose
++ fleet concurrency. Both re-measured same rig, same night. Credit MiaAI-Lab for a fast, real fix.
