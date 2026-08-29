@@ -137,3 +137,43 @@ death on long prefills (~62k tokens killed rank1 with no traceback on a 262k-con
 32k passes). Threshold bisect in progress; treat >32k prompts as unverified until we post the
 follow-up. Everything above, with the full ladder including failed experiments:
 github.com/beastllama/GLM-5.3-Flash-DFlash2-SGLang-2x-DGX-Spark
+
+---
+FORUM REPLY v5 (2026-08-28 night) — supersedes v4, adds round-2 shootout + root cause. PASTE THIS:
+
+Big update since the original post. Three "known limitations" of the SGLang route died in one
+day, we ran the first same-rig comparison against the EXL3+vLLM recipe (twice), and we found the
+root cause of a long-prefill crash that affects both stacks' users.
+
+1. fp8 KV cache on GB10 works. The tilelang tree already ships a complete raw-fp8 sparse kernel,
+HIP-gated in three plumbing sites. Ported, validated on sm_121 (decode parity with bf16, 4/5
+temp-0 exact, 32k recall clean, TTFT@16k 6.6s vs 7.9s). Upstream PR: sglang #36904.
+
+2. The ~55 tok/s "bandwidth plateau" was a silent cap: the mamba state cache limits EVERY DFlash
+config to 2 concurrent streams (boot log: "capped to 2 by the mamba state cache"). Fix:
+--max-mamba-cache-size 40 --mamba-ssm-dtype bfloat16. Result: c8 = 78 tok/s aggregate (8/8 truly
+concurrent), c12 = 83.5 vs 48.8 capped. Filed as sglang #36889. Correctness matrix under load
+(fixed arithmetic, temp 0): 44/44 correct at c1/c4/c8.
+
+3. GLM-5.3-Flash is multimodal and the SGLang path serves it: --enable-multimodal. Image input
+verified working on the fp8 + 8-stream config, no measurable decode tax.
+
+THE SHOOTOUT (ran it twice, second time after MiaAI-Lab shipped a concurrency update):
+Same two Sparks, same prompts, same protocol, their repo/image/defaults.
+- Single-user code: EXL3+vLLM wins, 45-52 vs 29 tok/s
+- Prose: SGLang fp8 wins, 29.2 vs 25.0
+- Fleet c12: SGLang fp8 wins, 83.5 vs 59.9 (their update improved this +12%, still trails)
+- Long context: THEIR lane wins — recalled a needle at 54k tokens; ours kills the worker
+Solo coder: run theirs. Agents/teams/concurrent: run ours. Both live on our rig; we re-measure
+as they ship. Credit to MiaAI-Lab and brandonmusic.
+
+LONG-PREFILL WARNING + ROOT CAUSE (matters for anyone running big prompts on GB10):
+Prompts past ~40k tokens exhaust unified memory and can silently kill the worker rank — no
+traceback, no OOM record, docker's own state record incoherent. Filed as sglang #36941 with the
+mechanism: on models with index_kpool set (GLM-5.3-Flash has it), the DSA indexer materializes a
+dense fp32 logits matrix sized q_rows x total_prompt_tokens, and the guard that exists for exactly
+this (_should_chunk_mqa_logits) is defined but never called on that code path — the non-kpool
+indexer does call it. Mitigation we are testing tonight: --chunked-prefill-size 2048.
+
+Everything above with the full ladder including failed experiments and retractions:
+github.com/beastllama/GLM-5.3-Flash-DFlash2-SGLang-2x-DGX-Spark
